@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     num_epochs = 50
     vocabulary_size = src_vocab_size
-    
+
 
 
     def inference(seed, top_n):
@@ -84,59 +84,64 @@ if __name__ == "__main__":
         n_units=256,
         embedding_layer=tl.layers.Embedding(vocabulary_size=vocabulary_size, embedding_size=emb_dim),
         )
-    
+
 
     # Uncomment below statements if you have already saved the model
 
-    # load_weights = tl.files.load_npz(name='model.npz')
-    # tl.files.assign_weights(load_weights, model_)
+    load_weights = tl.files.load_npz(name='model.npz')
+    tl.files.assign_weights(load_weights, model_)
 
     optimizer = tf.optimizers.Adam(learning_rate=0.001)
     model_.train()
 
     seeds = ["happy birthday have a nice day",
-                 "donald trump won last nights presidential debate according to snap online polls"]
-    for epoch in range(num_epochs):
-        model_.train()
-        trainX, trainY = shuffle(trainX, trainY, random_state=0)
-        total_loss, n_iter = 0, 0
-        for X, Y in tqdm(tl.iterate.minibatches(inputs=trainX, targets=trainY, batch_size=batch_size, shuffle=False), 
-                        total=n_step, desc='Epoch[{}/{}]'.format(epoch + 1, num_epochs), leave=False):
+             "donald trump won last nights presidential debate according to snap online polls",
+             "i like you"]
 
-            X = tl.prepro.pad_sequences(X)
-            _target_seqs = tl.prepro.sequences_add_end_id(Y, end_id=end_id)
-            _target_seqs = tl.prepro.pad_sequences(_target_seqs, maxlen=decoder_seq_length)
-            _decode_seqs = tl.prepro.sequences_add_start_id(Y, start_id=start_id, remove_last=False)
-            _decode_seqs = tl.prepro.pad_sequences(_decode_seqs, maxlen=decoder_seq_length)
-            _target_mask = tl.prepro.sequences_get_mask(_target_seqs)
+    while True:
+        raw = input('>')
+        top_n = 3
+        for i in range(top_n):
+            sentence = inference(raw, top_n)
+            print(' >', ' '.join(sentence))
 
-            with tf.GradientTape() as tape:
-                ## compute outputs
-                output = model_(inputs = [X, _decode_seqs])
-                
-                output = tf.reshape(output, [-1, vocabulary_size])
-                ## compute loss and update model
-                loss = cross_entropy_seq_with_mask(logits=output, target_seqs=_target_seqs, input_mask=_target_mask)
+    # Train step
+    # for epoch in range(num_epochs):
+        # model_.train()
+        # trainX, trainY = shuffle(trainX, trainY, random_state=0)
+        # total_loss, n_iter = 0, 0
+        # for X, Y in tqdm(tl.iterate.minibatches(inputs=trainX, targets=trainY, batch_size=batch_size, shuffle=False),
+        #                 total=n_step, desc='Epoch[{}/{}]'.format(epoch + 1, num_epochs), leave=False):
+        #
+        #     X = tl.prepro.pad_sequences(X)
+        #     _target_seqs = tl.prepro.sequences_add_end_id(Y, end_id=end_id)
+        #     _target_seqs = tl.prepro.pad_sequences(_target_seqs, maxlen=decoder_seq_length)
+        #     _decode_seqs = tl.prepro.sequences_add_start_id(Y, start_id=start_id, remove_last=False)
+        #     _decode_seqs = tl.prepro.pad_sequences(_decode_seqs, maxlen=decoder_seq_length)
+        #     _target_mask = tl.prepro.sequences_get_mask(_target_seqs)
+        #
+        #     with tf.GradientTape() as tape:
+        #         ## compute outputs
+        #         output = model_(inputs = [X, _decode_seqs])
+        #
+        #         output = tf.reshape(output, [-1, vocabulary_size])
+        #         ## compute loss and update model
+        #         loss = cross_entropy_seq_with_mask(logits=output, target_seqs=_target_seqs, input_mask=_target_mask)
+        #
+        #         grad = tape.gradient(loss, model_.all_weights)
+        #         optimizer.apply_gradients(zip(grad, model_.all_weights))
+        #
+        #     total_loss += loss
+        #     n_iter += 1
+        #
+        # # printing average loss after every epoch
+        # print('Epoch [{}/{}]: loss {:.4f}'.format(epoch + 1, num_epochs, total_loss / n_iter))
 
-                grad = tape.gradient(loss, model_.all_weights)
-                optimizer.apply_gradients(zip(grad, model_.all_weights))
-            
-            total_loss += loss
-            n_iter += 1
-
-        # printing average loss after every epoch
-        print('Epoch [{}/{}]: loss {:.4f}'.format(epoch + 1, num_epochs, total_loss / n_iter))
-
-        for seed in seeds:
-            print("Query >", seed)
-            top_n = 3
-            for i in range(top_n):
-                sentence = inference(seed, top_n)
-                print(" >", ' '.join(sentence))
-
-        tl.files.save_npz(model_.all_weights, name='model.npz')
-
-
-        
-    
-    
+        # for seed in seeds:
+        #     print("Query >", seed)
+        #     top_n = 3
+        #     for i in range(top_n):
+        #         sentence = inference(seed, top_n)
+        #         print(" >", ' '.join(sentence))
+        #
+        # tl.files.save_npz(model_.all_weights, name='model.npz')
